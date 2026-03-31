@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simple Expense Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header>
+      <h1>Expense Tracker</h1>
+      <p>Track your spending and see your balance instantly.</p>
+    </header>
+
+    <section class="summary-cards">
+      <article class="card">
+        <h2>Total Income</h2>
+        <p id="total-income">$0.00</p>
+      </article>
+      <article class="card">
+        <h2>Total Expenses</h2>
+        <p id="total-expenses">$0.00</p>
+      </article>
+      <article class="card">
+        <h2>Balance</h2>
+        <p id="balance">$0.00</p>
+      </article>
+      <article class="card">
+        <h2>Records</h2>
+        <p id="expense-count">0</p>
+      </article>
+    </section>
+
+    <section class="chart-panel">
+      <div class="chart-header">
+        <h2>Balance Over Time</h2>
+        <div class="chart-controls">
+          <button class="secondary-btn timeframe-btn active" data-months="1">1 month</button>
+          <button class="secondary-btn timeframe-btn" data-months="3">3 months</button>
+          <button class="secondary-btn timeframe-btn" data-months="6">6 months</button>
+          <button class="secondary-btn timeframe-btn" data-months="12">12 months</button>
+        </div>
+      </div>
+      <div class="chart-frame balance-chart-frame">
+        <canvas id="balance-chart" width="820" height="320"></canvas>
+        <p class="chart-message" id="chart-message">Shows the running balance for the selected period.</p>
+      </div>
+    </section>
+
+    <section class="breakdown-panel">
+      <div class="chart-frame pie-chart-frame">
+        <h3>Expense Breakdown</h3>
+        <canvas id="pie-chart" width="520" height="320"></canvas>
+        <p class="chart-message" id="pie-chart-message">Shows spending by category for expenses only.</p>
+      </div>
+    </section>
+
+    <section class="report-panel">
+      <div class="report-header">
+        <h2>12-Month Cashflow Breakdown</h2>
+        <button id="report-btn" type="button" class="secondary-btn">Download report</button>
+      </div>
+      <p class="hint">Generates a CSV of monthly spending and income category totals for the last 12 months.</p>
+      <p class="report-message" id="report-message" aria-live="polite"></p>
+      <div class="chart-frame report-chart-frame">
+        <h3>Monthly cashflow breakdown</h3>
+        <canvas id="report-chart" width="820" height="320"></canvas>
+        <p class="chart-message" id="report-chart-message">Shows monthly spending and income category breakdowns for the last 12 months.</p>
+      </div>
+    </section>
+
+    <section class="entry-panel">
+      <form id="expense-form">
+        <div class="field-group">
+          <label for="description">Description</label>
+          <input type="text" id="description" required placeholder="Coffee, invoice, salary..." />
+        </div>
+        <div class="field-group">
+          <label for="amount">Amount</label>
+          <input type="number" id="amount" required step="0.01" min="0.01" placeholder="0.00" />
+        </div>
+        <div class="field-group">
+          <label for="type">Type</label>
+          <select id="type" required>
+            <option value="Expense">Expense</option>
+            <option value="Income">Income</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label for="date">Date</label>
+          <input type="date" id="date" required />
+        </div>
+        <div class="field-group">
+          <label for="category">Category</label>
+          <select id="category" required>
+            <option value="Food">Food</option>
+            <option value="Transport">Transport</option>
+            <option value="Bills">Bills</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Salary">Salary</option>
+            <option value="Supplementary Income">Supplementary Income</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <button type="submit" class="primary-btn">Add Transaction</button>
+      </form>
+      <div class="import-panel">
+        <label for="csv-file">Import CSV</label>
+        <div class="import-controls">
+          <input type="file" id="csv-file" accept=".csv" />
+          <button id="import-btn" type="button" class="secondary-btn">Import CSV</button>
+          <button id="export-btn" type="button" class="secondary-btn">Export CSV</button>
+        </div>
+        <p class="hint">Columns: <strong>description</strong>, <strong>amount</strong>, <strong>date</strong>, <strong>category</strong>, <strong>type</strong></p>
+        <a href="sample-expenses.csv" download class="link-btn">Download sample CSV</a>
+        <p class="import-message" id="import-message" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section class="expenses-list">
+      <h2>Expenses</h2>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Type</th>
+              <th>Category</th>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="expense-body"></tbody>
+        </table>
+      </div>
+      <p class="empty-message" id="empty-message">No expenses added yet.</p>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

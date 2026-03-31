@@ -1,0 +1,361 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f4f6fb;
+  color: #1f2937;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, #dbeafe 0%, transparent 45%),
+    radial-gradient(circle at bottom right, #e0f2fe 0%, transparent 40%),
+    #f4f6fb;
+}
+
+.app-shell {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 3rem);
+}
+
+p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.card h2 {
+  margin-bottom: 12px;
+  font-size: 1rem;
+  color: #475569;
+}
+
+.card p {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.entry-panel {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 28px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+  margin-bottom: 32px;
+}
+
+#expense-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 18px;
+  align-items: end;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+label {
+  font-size: 0.95rem;
+  color: #334155;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  background: #f8fafc;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+input[type="file"] {
+  padding: 10px 12px;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+
+.primary-btn {
+  padding: 16px 20px;
+  border: none;
+  border-radius: 14px;
+  background: #2563eb;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.primary-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.expenses-list {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+}
+
+.expenses-list h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+th,
+td {
+  padding: 14px 12px;
+  text-align: left;
+}
+
+th {
+  font-size: 0.95rem;
+  color: #475569;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+tbody tr {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+td {
+  font-size: 0.95rem;
+  color: #1f2937;
+}
+
+button.delete-btn {
+  border: none;
+  background: #f8d7da;
+  color: #991b1b;
+  padding: 10px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+button.delete-btn:hover {
+  background: #fca5a5;
+}
+
+.amount-income {
+  color: #0f9d58;
+  font-weight: 700;
+}
+
+.amount-expense {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.import-panel {
+  margin-top: 24px;
+  padding: 20px;
+  border-radius: 18px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.import-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.secondary-btn,
+.link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  padding: 14px 18px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.secondary-btn {
+  background: #e2e8f0;
+  color: #0f172a;
+  border: none;
+}
+
+.secondary-btn:hover {
+  background: #cbd5e1;
+}
+
+.link-btn {
+  background: transparent;
+  color: #2563eb;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+.hint,
+.import-message {
+  margin: 0;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.import-message {
+  margin-top: 8px;
+}
+
+.report-panel {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+  margin-bottom: 32px;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.report-message {
+  margin-top: 10px;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.chart-panel {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 28px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+  margin-bottom: 32px;
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.breakdown-panel {
+  margin-bottom: 32px;
+}
+
+.chart-frame {
+  position: relative;
+}
+
+.balance-chart-frame,
+.pie-chart-frame {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.pie-chart-frame h3,
+.report-chart-frame h3 {
+  margin-top: 0;
+  margin-bottom: 14px;
+  font-size: 1rem;
+  color: #1f2937;
+}
+
+#balance-chart,
+#pie-chart,
+#report-chart {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 18px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.chart-message {
+  margin-top: 12px;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 900px) {
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.empty-message {
+  margin-top: 16px;
+  color: #64748b;
+}
+
+@media (max-width: 720px) {
+  #expense-form {
+    grid-template-columns: 1fr;
+  }
+}
