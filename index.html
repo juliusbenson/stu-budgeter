@@ -8,7 +8,11 @@
 </head>
 <body>
   <main class="app-shell">
-    <header>
+    <div id="view-tracker">
+    <header class="page-header-with-nav">
+      <div class="header-top-row">
+        <a href="#simulator" class="secondary-btn header-simulator-link">Simulator</a>
+      </div>
       <h1>Expense Tracker</h1>
       <p>Track your spending and see your balance instantly.</p>
     </header>
@@ -62,6 +66,18 @@
         <button id="report-btn" type="button" class="secondary-btn">Download report</button>
       </div>
       <p class="hint">Generates a CSV of monthly spending and income category totals for the last 12 months.</p>
+      <div class="report-upload">
+        <div class="field-group report-server-field">
+          <label for="report-server-url">Report server URL</label>
+          <input
+            type="url"
+            id="report-server-url"
+            placeholder="http://127.0.0.1:5000"
+            autocomplete="url"
+          />
+        </div>
+        <button id="report-submit-btn" type="button" class="secondary-btn">Submit report</button>
+      </div>
       <p class="report-message" id="report-message" aria-live="polite"></p>
       <div class="chart-frame report-chart-frame">
         <h3>Monthly cashflow breakdown</h3>
@@ -137,8 +153,96 @@
       </div>
       <p class="empty-message" id="empty-message">No expenses added yet.</p>
     </section>
+    </div>
+
+    <div id="view-simulator" hidden>
+    <header class="page-header-with-nav">
+      <div class="header-top-row">
+        <a href="#" class="secondary-btn header-back-link">Back to tracker</a>
+      </div>
+      <h1>Balance simulator</h1>
+      <p class="header-subtitle">
+        Projects end-of-month balance using your <strong>average monthly net cashflow</strong> from the last ~12 months of
+        transactions. Hypothetical controls adjust that average; this is not financial advice.
+      </p>
+    </header>
+
+    <section class="simulator-controls card">
+      <h2 class="simulator-section-title">Scenario</h2>
+
+      <div class="simulator-presets">
+        <span class="presets-label">Quick presets</span>
+        <button type="button" class="secondary-btn" id="preset-job-loss">Job loss (no salary)</button>
+        <button type="button" class="secondary-btn" id="preset-supplement">+$100 / week income</button>
+        <button type="button" class="secondary-btn" id="preset-reset">Reset adjustments</button>
+      </div>
+
+      <div class="simulator-grid">
+        <div class="field-group">
+          <label for="horizon">Projection length</label>
+          <select id="horizon">
+            <option value="12" selected>12 months</option>
+            <option value="24">24 months</option>
+            <option value="36">36 months</option>
+          </select>
+        </div>
+
+        <div class="field-group checkbox-field">
+          <label class="checkbox-label">
+            <input type="checkbox" id="exclude-salary" />
+            Exclude salary (Salary category income)
+          </label>
+        </div>
+
+        <div class="field-group checkbox-field">
+          <label class="checkbox-label">
+            <input type="checkbox" id="exclude-food" />
+            Exclude food spending (Food category)
+          </label>
+        </div>
+
+        <div class="field-group">
+          <label for="supplement-weekly">Supplemental income ($ / week)</label>
+          <input type="number" id="supplement-weekly" min="0" step="0.01" value="0" />
+        </div>
+
+        <div class="field-group">
+          <label for="cut-category">Reduce spending (category)</label>
+          <select id="cut-category">
+            <option value="">— None —</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label for="cut-percent">Reduce by (%)</label>
+          <input type="number" id="cut-percent" min="0" max="100" step="1" value="0" />
+        </div>
+      </div>
+    </section>
+
+    <section class="chart-panel simulator-chart-panel">
+      <div class="chart-header">
+        <h2>Projected balance</h2>
+        <div class="simulator-legend" id="simulator-legend" aria-hidden="true">
+          <span class="legend-item legend-baseline"><span class="legend-swatch"></span> Baseline</span>
+          <span class="legend-item legend-scenario"><span class="legend-swatch"></span> Scenario</span>
+        </div>
+      </div>
+      <div class="chart-frame balance-chart-frame simulator-chart-frame">
+        <canvas id="simulator-chart" width="820" height="320"></canvas>
+        <p class="chart-message" id="simulator-chart-message"></p>
+      </div>
+    </section>
+
+    <section class="simulator-summary card" id="simulator-summary" hidden>
+      <h2 class="simulator-section-title">Summary</h2>
+      <ul class="simulator-summary-list" id="simulator-summary-list"></ul>
+    </section>
+    </div>
   </main>
 
+  <script src="projection.js"></script>
   <script src="script.js"></script>
+  <script src="simulator.js"></script>
 </body>
 </html>

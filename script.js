@@ -18,9 +18,18 @@ const timeframeButtons = document.querySelectorAll('.timeframe-btn');
 const chartMessage = document.getElementById('chart-message');
 const pieChartMessage = document.getElementById('pie-chart-message');
 const importMessage = document.getElementById('import-message');
+const reportServerUrlInput = document.getElementById('report-server-url');
+const reportSubmitBtn = document.getElementById('report-submit-btn');
 
 const STORAGE_KEY = 'simple-expense-tracker-expenses';
+const REPORT_SERVER_STORAGE_KEY = 'simple-expense-tracker-report-server-url';
 const DEFAULT_CHART_MONTHS = 3;
+
+function normalizeReportServerBaseUrl(raw) {
+  const t = String(raw ?? '').trim();
+  if (!t) return '';
+  return t.replace(/\/+$/, '');
+}
 let chartMonths = DEFAULT_CHART_MONTHS;
 
 timeframeButtons.forEach(button => {
@@ -33,6 +42,19 @@ timeframeButtons.forEach(button => {
 
 let expenses = loadExpenses();
 renderExpenses();
+
+if (reportServerUrlInput) {
+  const savedUrl = localStorage.getItem(REPORT_SERVER_STORAGE_KEY);
+  if (savedUrl) {
+    reportServerUrlInput.value = savedUrl;
+  }
+  reportServerUrlInput.addEventListener('change', () => {
+    const v = normalizeReportServerBaseUrl(reportServerUrlInput.value);
+    if (v) {
+      localStorage.setItem(REPORT_SERVER_STORAGE_KEY, v);
+    }
+  });
+}
 
 expenseForm.addEventListener('submit', event => {
   event.preventDefault();
@@ -126,12 +148,12 @@ exportButton.addEventListener('click', () => {
   importMessage.textContent = `Exported ${expenses.length} transaction${expenses.length === 1 ? '' : 's'}.`;
 });
 
-reportButton?.addEventListener('click', async () => {
+async function buildCashflowReportPayload() {
   const rows = getAnonymizedReportRows();
-
   if (rows.length === 0) {
-    reportMessage.textContent = 'No eligible records are available for the last 12 months.';
-    return;
+    return {
+      error: 'No eligible records are available for the last 12 months.',
+    };
   }
 
   const balance = expenses.reduce((sum, expense) => {
@@ -144,9 +166,61 @@ reportButton?.addEventListener('click', async () => {
   const csvText = [header, ...csvRows].map(row => row.map(escapeCsv).join(',')).join('\n');
   const fingerprint = await computeSha1Hex(csvText, 10);
   const filename = `cashflow-report-${fingerprint}.csv`;
+  return { csvText, filename, rowCount: rows.length };
+}
 
-  downloadCsv(csvText, filename);
-  reportMessage.textContent = `Report generated with ${rows.length} monthly category rows plus current balance.`;
+reportButton?.addEventListener('click', async () => {
+  const payload = await buildCashflowReportPayload();
+  if ('error' in payload) {
+    reportMessage.textContent = payload.error;
+    return;
+  }
+
+  downloadCsv(payload.csvText, payload.filename);
+  reportMessage.textContent = `Report generated with ${payload.rowCount} monthly category rows plus current balance.`;
+});
+
+reportSubmitBtn?.addEventListener('click', async () => {
+  const payload = await buildCashflowReportPayload();
+  if ('error' in payload) {
+    reportMessage.textContent = payload.error;
+    return;
+  }
+
+  const base = normalizeReportServerBaseUrl(reportServerUrlInput?.value);
+  if (!base) {
+    reportMessage.textContent = 'Enter a report server URL.';
+    return;
+  }
+
+  localStorage.setItem(REPORT_SERVER_STORAGE_KEY, base);
+  if (reportServerUrlInput) {
+    reportServerUrlInput.value = base;
+  }
+
+  try {
+    const res = await fetch(`${base}/reports`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/csv' },
+      body: payload.csvText,
+    });
+    let data = {};
+    try {
+      data = await res.json();
+    } catch {
+      /* ignore non-JSON */
+    }
+    if (!res.ok) {
+      reportMessage.textContent = data.error || `Upload failed (${res.status}).`;
+      return;
+    }
+    reportMessage.textContent =
+      data.message === 'Already stored'
+        ? 'Report already on server (unchanged).'
+        : `Report uploaded: ${data.filename}.`;
+  } catch (err) {
+    reportMessage.textContent = `Upload failed: ${err.message}`;
+  }
 });
 
 function loadExpenses() {

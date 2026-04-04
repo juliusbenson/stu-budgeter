@@ -10,10 +10,11 @@ Output is saved to an image file and optionally displayed.
 
 import argparse
 import calendar
-import csv
 import datetime
 import math
 from pathlib import Path
+
+from cashflow_report_csv import load_report_csv
 
 
 def parse_arguments():
@@ -62,36 +63,6 @@ def add_months(source_date, months):
     month = month % 12 + 1
     day = min(source_date.day, calendar.monthrange(year, month)[1])
     return datetime.date(year, month, day)
-
-
-def load_report_csv(path):
-    rows = []
-    current_balance = None
-    with path.open(newline='', encoding='utf-8') as handle:
-        reader = csv.reader(handle)
-        header = [col.strip().lower() for col in next(reader, [])]
-        if header != ['month', 'type', 'category', 'amount']:
-            raise ValueError(f"Unsupported CSV header in {path}: {header}")
-
-        for row in reader:
-            if len(row) != 4:
-                continue
-            month_value, type_value, category, amount_text = [cell.strip() for cell in row]
-            if not type_value or not amount_text:
-                continue
-            amount = float(amount_text)
-            type_value = type_value.title()
-
-            if type_value == 'Balance' and category == 'Current balance':
-                current_balance = amount
-                continue
-
-            if not month_value:
-                continue
-
-            rows.append((month_value, type_value, category, amount))
-
-    return rows, current_balance
 
 
 def aggregate_report(rows):
