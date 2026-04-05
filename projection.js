@@ -7,6 +7,18 @@
     return date;
   }
 
+  /** Parse YYYY-MM-DD as local calendar date (for date input values). */
+  function parseLocalDateYmd(str) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(str).trim());
+    if (!m) return null;
+    const y = Number(m[1]);
+    const mo = Number(m[2]);
+    const d = Number(m[3]);
+    const dt = new Date(y, mo - 1, d);
+    dt.setHours(0, 0, 0, 0);
+    return Number.isNaN(dt.getTime()) ? null : dt;
+  }
+
   function loadExpenses() {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -126,6 +138,60 @@
     const avg = sum / keys.length;
     const weekly = Number(opts.supplementWeekly) || 0;
     return avg + (weekly * 52) / 12;
+  }
+
+  function weeklyToMonthlyNet(weekly) {
+    const w = Number(weekly) || 0;
+    return (w * 52) / 12;
+  }
+
+  /**
+   * First calendar instant cash hits $0 when applying constant monthly net from `prior` over monthStarts.
+   * @returns {Date|null}
+   */
+  function firstDepletionOn(prior, averageNet, monthStarts) {
+    if (!monthStarts || monthStarts.length === 0) return null;
+    const r = projectBalances(prior, averageNet, monthStarts);
+    return r.depletedOn;
+  }
+
+  /**
+   * @param {number} currentBalance
+   * @param {Date[]} monthStarts
+   * @param {(monthIndex: number, priorBalance: number) => number} getNetForMonth
+   */
+  function projectBalancesStateful(currentBalance, monthStarts, getNetForMonth) {
+    const balances = [];
+    let balance = currentBalance;
+    const horizonMonths = monthStarts.length;
+
+    for (let i = 0; i < horizonMonths; i += 1) {
+      const prior = balance;
+      const averageNet = getNetForMonth(i, prior);
+      balance += averageNet;
+      if (balance <= 0) {
+        balances.push(0);
+        const { depletedFractionInMonth, depletedOn } = computeDepletionTiming(
+          prior,
+          averageNet,
+          monthStarts[i]
+        );
+        return {
+          balances,
+          depletedAtIndex: i,
+          depletedOn,
+          depletedFractionInMonth,
+        };
+      }
+      balances.push(balance);
+    }
+
+    return {
+      balances,
+      depletedAtIndex: null,
+      depletedOn: null,
+      depletedFractionInMonth: null,
+    };
   }
 
   function buildProjectionMonthStarts(horizonMonths) {
@@ -292,8 +358,15 @@
       categoryCuts: params.categoryCuts && typeof params.categoryCuts === 'object' ? params.categoryCuts : {},
     };
 
+    const scenarioOptsBase = {
+      ...scenarioOpts,
+      supplementWeekly: 0,
+    };
+
     const averageNetBaseline = averageMonthlyNet(byMonth, baselineOpts);
-    const averageNetScenario = averageMonthlyNet(byMonth, scenarioOpts);
+    const baseNetScenario = averageMonthlyNet(byMonth, scenarioOptsBase);
+    const supplementMonthly = weeklyToMonthlyNet(params.supplementWeekly);
+    const conditionalSupplement = Boolean(params.conditionalSupplement);
 
     const today = getDateOnly(new Date());
     const monthStarts = buildProjectionMonthStarts(horizonMonths);
@@ -305,7 +378,60 @@
     const monthLabels = [todayLabel, ...monthLabelsFromStarts(monthStarts)];
 
     const baseline = projectBalances(startingBalance, averageNetBaseline, monthStarts);
-    const scenario = projectBalances(startingBalance, averageNetScenario, monthStarts);
+
+    let averageNetScenario;
+    let scenario;
+    let scenarioSupplementMonthsActive = 0;
+
+    if (!conditionalSupplement) {
+      averageNetScenario = averageMonthlyNet(byMonth, scenarioOpts);
+      scenario = projectBalances(startingBalance, averageNetScenario, monthStarts);
+    } else {
+      const sx = Number(params.savingsThreshold);
+      const useSavings = params.savingsThreshold !== '' && params.savingsThreshold != null && Number.isFinite(sx);
+      const by = Number(params.burnThreshold);
+      const useBurn = params.burnThreshold !== '' && params.burnThreshold != null && Number.isFinite(by);
+      let deadlineEnd = null;
+      if (params.depletionBeforeDate != null && String(params.depletionBeforeDate).trim() !== '') {
+        const z =
+          parseLocalDateYmd(params.depletionBeforeDate) || getDateOnly(params.depletionBeforeDate);
+        if (!Number.isNaN(z.getTime())) {
+          deadlineEnd = new Date(z.getTime());
+          deadlineEnd.setDate(deadlineEnd.getDate() + 1);
+        }
+      }
+      const useDate = deadlineEnd !== null;
+      const anyCondition = useSavings || useBurn || useDate;
+      const burnRate = Math.max(0, -baseNetScenario);
+
+      let netsSum = 0;
+      let monthsCounted = 0;
+
+      scenario = projectBalancesStateful(startingBalance, monthStarts, (i, prior) => {
+        let net = baseNetScenario;
+        if (anyCondition && supplementMonthly > 0) {
+          let trigger = false;
+          if (useSavings && prior < sx) trigger = true;
+          if (useBurn && burnRate > by) trigger = true;
+          if (useDate) {
+            const slice = monthStarts.slice(i);
+            const depletedOn = firstDepletionOn(prior, baseNetScenario, slice);
+            if (depletedOn != null && depletedOn.getTime() < deadlineEnd.getTime()) {
+              trigger = true;
+            }
+          }
+          if (trigger) {
+            net += supplementMonthly;
+            scenarioSupplementMonthsActive += 1;
+          }
+        }
+        netsSum += net;
+        monthsCounted += 1;
+        return net;
+      });
+
+      averageNetScenario = monthsCounted > 0 ? netsSum / monthsCounted : baseNetScenario;
+    }
 
     const baselineBalances = [startingBalance, ...baseline.balances];
     const scenarioBalances = [startingBalance, ...scenario.balances];
@@ -343,6 +469,7 @@
       monthsUsed: Object.keys(byMonth).length,
       startingBalance,
       expenseCategories: collectExpenseCategories(byMonth),
+      scenarioSupplementMonthsActive: conditionalSupplement ? scenarioSupplementMonthsActive : 0,
     };
   }
 

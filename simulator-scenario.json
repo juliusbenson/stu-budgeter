@@ -1,0 +1,13 @@
+{
+  "stuBudgeterSimulatorScenario": 1,
+  "horizonMonths": 12,
+  "excludeSalary": true,
+  "excludeFood": false,
+  "supplementWeekly": 100,
+  "conditionalSupplement": true,
+  "savingsThreshold": 5000,
+  "burnThreshold": 3000,
+  "depletionBeforeDate": "2026-08-01",
+  "cutCategory": "Food",
+  "cutPercent": 50
+}

@@ -2,6 +2,11 @@ const horizonSelect = document.getElementById('horizon');
 const excludeSalary = document.getElementById('exclude-salary');
 const excludeFood = document.getElementById('exclude-food');
 const supplementWeekly = document.getElementById('supplement-weekly');
+const supplementConditional = document.getElementById('supplement-conditional');
+const supplementConditionalFields = document.getElementById('supplement-conditional-fields');
+const supplementIfSavingsBelow = document.getElementById('supplement-if-savings-below');
+const supplementIfBurnAbove = document.getElementById('supplement-if-burn-above');
+const supplementIfDepleteBefore = document.getElementById('supplement-if-deplete-before');
 const cutCategory = document.getElementById('cut-category');
 const cutPercent = document.getElementById('cut-percent');
 const canvas = document.getElementById('simulator-chart');
@@ -13,6 +18,12 @@ const legendEl = document.getElementById('simulator-legend');
 const presetJobLoss = document.getElementById('preset-job-loss');
 const presetSupplement = document.getElementById('preset-supplement');
 const presetReset = document.getElementById('preset-reset');
+const simulatorScenarioExportBtn = document.getElementById('simulator-scenario-export');
+const simulatorScenarioImportBtn = document.getElementById('simulator-scenario-import-btn');
+const simulatorScenarioImportInput = document.getElementById('simulator-scenario-import');
+
+const SIMULATOR_SCENARIO_FORMAT_VERSION = 1;
+const SIMULATOR_HORIZON_OPTIONS = [12, 24, 36];
 
 function getCategoryCuts() {
   const cat = cutCategory.value;
@@ -271,6 +282,167 @@ function drawProjectionChart(
   });
 }
 
+function syncConditionalFieldsPanel() {
+  if (!supplementConditionalFields || !supplementConditional) return;
+  supplementConditionalFields.hidden = !supplementConditional.checked;
+}
+
+function getScenarioSnapshot() {
+  const savingsRaw = supplementIfSavingsBelow?.value.trim() ?? '';
+  const burnRaw = supplementIfBurnAbove?.value.trim() ?? '';
+  const w = parseFloat(supplementWeekly.value);
+  const pct = parseFloat(cutPercent.value);
+  return {
+    stuBudgeterSimulatorScenario: SIMULATOR_SCENARIO_FORMAT_VERSION,
+    horizonMonths: Number(horizonSelect.value),
+    excludeSalary: Boolean(excludeSalary.checked),
+    excludeFood: Boolean(excludeFood.checked),
+    supplementWeekly: Number.isFinite(w) && w >= 0 ? w : 0,
+    conditionalSupplement: Boolean(supplementConditional?.checked),
+    savingsThreshold: savingsRaw === '' || Number.isNaN(parseFloat(savingsRaw)) ? null : parseFloat(savingsRaw),
+    burnThreshold: burnRaw === '' || Number.isNaN(parseFloat(burnRaw)) ? null : parseFloat(burnRaw),
+    depletionBeforeDate: supplementIfDepleteBefore?.value ?? '',
+    cutCategory: cutCategory.value || '',
+    cutPercent: Number.isFinite(pct) ? Math.min(100, Math.max(0, pct)) : 0,
+  };
+}
+
+function applyScenarioSnapshot(data) {
+  if (!data || typeof data !== 'object') return false;
+
+  const ver = data.stuBudgeterSimulatorScenario;
+  if (ver !== SIMULATOR_SCENARIO_FORMAT_VERSION) return false;
+
+  let h = Number(data.horizonMonths);
+  if (!SIMULATOR_HORIZON_OPTIONS.includes(h)) h = 12;
+  horizonSelect.value = String(h);
+
+  excludeSalary.checked = Boolean(data.excludeSalary);
+  excludeFood.checked = Boolean(data.excludeFood);
+
+  const sup = Number(data.supplementWeekly);
+  supplementWeekly.value = String(Number.isFinite(sup) && sup >= 0 ? sup : 0);
+
+  if (supplementConditional) {
+    supplementConditional.checked = Boolean(data.conditionalSupplement);
+  }
+
+  if (supplementIfSavingsBelow) {
+    const st = data.savingsThreshold;
+    supplementIfSavingsBelow.value =
+      st != null && Number.isFinite(Number(st)) ? String(Number(st)) : '';
+  }
+  if (supplementIfBurnAbove) {
+    const bt = data.burnThreshold;
+    supplementIfBurnAbove.value =
+      bt != null && Number.isFinite(Number(bt)) ? String(Number(bt)) : '';
+  }
+  if (supplementIfDepleteBefore) {
+    const d = data.depletionBeforeDate;
+    supplementIfDepleteBefore.value =
+      typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : '';
+  }
+
+  const cat = typeof data.cutCategory === 'string' ? data.cutCategory : '';
+  cutCategory.value = cat;
+
+  let pct = Number(data.cutPercent);
+  if (!Number.isFinite(pct)) pct = 0;
+  cutPercent.value = String(Math.min(100, Math.max(0, Math.round(pct))));
+
+  syncConditionalFieldsPanel();
+  render();
+  return true;
+}
+
+function exportScenario() {
+  const json = JSON.stringify(getScenarioSnapshot(), null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'simulator-scenario.json';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importScenarioFromText(text) {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    if (simulatorChartMessage) {
+      simulatorChartMessage.textContent =
+        'Could not import scenario: file is not valid JSON.';
+    }
+    return false;
+  }
+
+  if (!data || typeof data !== 'object') {
+    if (simulatorChartMessage) {
+      simulatorChartMessage.textContent = 'Could not import scenario: invalid file.';
+    }
+    return false;
+  }
+
+  if (data.stuBudgeterSimulatorScenario !== SIMULATOR_SCENARIO_FORMAT_VERSION) {
+    if (simulatorChartMessage) {
+      simulatorChartMessage.textContent =
+        'Could not import scenario: unsupported format version (expected 1).';
+    }
+    return false;
+  }
+
+  if (!applyScenarioSnapshot(data)) {
+    if (simulatorChartMessage) {
+      simulatorChartMessage.textContent = 'Could not import scenario: invalid data.';
+    }
+    return false;
+  }
+
+  return true;
+}
+
+function importScenarioFromFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const text = typeof reader.result === 'string' ? reader.result : '';
+    importScenarioFromText(text);
+    if (simulatorScenarioImportInput) simulatorScenarioImportInput.value = '';
+  };
+  reader.onerror = () => {
+    if (simulatorChartMessage) {
+      simulatorChartMessage.textContent = 'Could not read scenario file.';
+    }
+    if (simulatorScenarioImportInput) simulatorScenarioImportInput.value = '';
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function buildProjectionParams(expenses) {
+  const params = {
+    expenses,
+    horizonMonths: Number(horizonSelect.value),
+    excludeSalary: excludeSalary.checked,
+    excludeFood: excludeFood.checked,
+    supplementWeekly: parseFloat(supplementWeekly.value) || 0,
+    categoryCuts: getCategoryCuts(),
+  };
+  if (supplementConditional && supplementConditional.checked) {
+    params.conditionalSupplement = true;
+    const savingsRaw = supplementIfSavingsBelow?.value.trim() ?? '';
+    if (savingsRaw !== '') params.savingsThreshold = parseFloat(savingsRaw);
+    const burnRaw = supplementIfBurnAbove?.value.trim() ?? '';
+    if (burnRaw !== '') params.burnThreshold = parseFloat(burnRaw);
+    const dateVal = supplementIfDepleteBefore?.value ?? '';
+    if (dateVal) params.depletionBeforeDate = dateVal;
+  }
+  return params;
+}
+
 function populateCategoryOptions(categories) {
   const current = cutCategory.value;
   cutCategory.innerHTML = '<option value="">— None —</option>';
@@ -280,21 +452,21 @@ function populateCategoryOptions(categories) {
     opt.textContent = cat;
     cutCategory.appendChild(opt);
   });
-  if (categories.includes(current)) {
+  if (current && !categories.includes(current)) {
+    const opt = document.createElement('option');
+    opt.value = current;
+    opt.textContent = current;
+    cutCategory.appendChild(opt);
+  }
+  if (current) {
     cutCategory.value = current;
   }
 }
 
 function render() {
+  syncConditionalFieldsPanel();
   const expenses = window.ExpenseProjection.loadExpenses();
-  const result = window.ExpenseProjection.buildProjection({
-    expenses,
-    horizonMonths: Number(horizonSelect.value),
-    excludeSalary: excludeSalary.checked,
-    excludeFood: excludeFood.checked,
-    supplementWeekly: parseFloat(supplementWeekly.value) || 0,
-    categoryCuts: getCategoryCuts(),
-  });
+  const result = window.ExpenseProjection.buildProjection(buildProjectionParams(expenses));
 
   if (result.error) {
     simulatorChartMessage.textContent = result.error;
@@ -354,6 +526,15 @@ function render() {
     ['Starting balance', formatMoney(result.startingBalance)],
     ['Baseline avg monthly net', formatMoney(result.averageNetBaseline)],
     ['Scenario avg monthly net', formatMoney(result.averageNetScenario)],
+  ];
+  if (supplementConditional && supplementConditional.checked) {
+    const n = result.scenarioSupplementMonthsActive ?? 0;
+    items.push([
+      'Supplement active (months)',
+      `${n} of ${result.monthLabels.length - 1}`,
+    ]);
+  }
+  items.push(
     [
       'Baseline $0',
       depletionSummaryLine(
@@ -371,8 +552,8 @@ function render() {
       ),
     ],
     ['End balance (baseline)', formatMoney(endBase)],
-    ['End balance (scenario)', formatMoney(endScen)],
-  ];
+    ['End balance (scenario)', formatMoney(endScen)]
+  );
   items.forEach(([k, v]) => {
     const li = document.createElement('li');
     li.innerHTML = `<span class="summary-key">${k}</span><span class="summary-val">${v}</span>`;
@@ -388,9 +569,18 @@ function wireEvents() {
     supplementWeekly,
     cutCategory,
     cutPercent,
-  ].forEach(el => el.addEventListener('change', render));
+    supplementIfSavingsBelow,
+    supplementIfBurnAbove,
+    supplementIfDepleteBefore,
+  ]
+    .filter(Boolean)
+    .forEach(el => el.addEventListener('change', render));
   supplementWeekly.addEventListener('input', render);
   cutPercent.addEventListener('input', render);
+  supplementIfSavingsBelow?.addEventListener('input', render);
+  supplementIfBurnAbove?.addEventListener('input', render);
+
+  supplementConditional?.addEventListener('change', render);
 
   presetJobLoss.addEventListener('click', () => {
     excludeSalary.checked = true;
@@ -406,9 +596,25 @@ function wireEvents() {
     excludeSalary.checked = false;
     excludeFood.checked = false;
     supplementWeekly.value = '0';
+    if (supplementConditional) supplementConditional.checked = false;
+    if (supplementIfSavingsBelow) supplementIfSavingsBelow.value = '';
+    if (supplementIfBurnAbove) supplementIfBurnAbove.value = '';
+    if (supplementIfDepleteBefore) supplementIfDepleteBefore.value = '';
     cutCategory.value = '';
     cutPercent.value = '0';
+    syncConditionalFieldsPanel();
     render();
+  });
+
+  simulatorScenarioExportBtn?.addEventListener('click', exportScenario);
+
+  simulatorScenarioImportBtn?.addEventListener('click', () => {
+    simulatorScenarioImportInput?.click();
+  });
+
+  simulatorScenarioImportInput?.addEventListener('change', () => {
+    const file = simulatorScenarioImportInput.files && simulatorScenarioImportInput.files[0];
+    if (file) importScenarioFromFile(file);
   });
 
   window.addEventListener('resize', () => {

@@ -175,6 +175,9 @@
         <button type="button" class="secondary-btn" id="preset-job-loss">Job loss (no salary)</button>
         <button type="button" class="secondary-btn" id="preset-supplement">+$100 / week income</button>
         <button type="button" class="secondary-btn" id="preset-reset">Reset adjustments</button>
+        <button type="button" class="secondary-btn" id="simulator-scenario-export">Export scenario</button>
+        <button type="button" class="secondary-btn" id="simulator-scenario-import-btn">Import scenario</button>
+        <input type="file" id="simulator-scenario-import" accept=".json,application/json" hidden />
       </div>
 
       <div class="simulator-grid">
@@ -204,6 +207,34 @@
         <div class="field-group">
           <label for="supplement-weekly">Supplemental income ($ / week)</label>
           <input type="number" id="supplement-weekly" min="0" step="0.01" value="0" />
+        </div>
+
+        <div class="field-group checkbox-field simulator-conditional-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="supplement-conditional" />
+            Apply supplement only when a condition below is met (OR)
+          </label>
+        </div>
+
+        <div class="field-group simulator-conditional-fields simulator-conditional-row" id="supplement-conditional-fields" hidden>
+          <p class="simulator-conditional-hint">
+            Burn uses your stressed average monthly net (same scenario, no supplement). The date rule uses a projection
+            without supplement from each month-start balance.
+          </p>
+          <div class="simulator-grid simulator-conditional-grid">
+            <div class="field-group">
+              <label for="supplement-if-savings-below">If savings below ($)</label>
+              <input type="number" id="supplement-if-savings-below" min="0" step="0.01" placeholder="Optional" />
+            </div>
+            <div class="field-group">
+              <label for="supplement-if-burn-above">If monthly burn above ($)</label>
+              <input type="number" id="supplement-if-burn-above" min="0" step="0.01" placeholder="Optional" />
+            </div>
+            <div class="field-group">
+              <label for="supplement-if-deplete-before">If projected $0 before</label>
+              <input type="date" id="supplement-if-deplete-before" />
+            </div>
+          </div>
         </div>
 
         <div class="field-group">

@@ -73,6 +73,24 @@ header {
   align-items: end;
 }
 
+/* Beat .card p (large stat text) — higher specificity than .card p alone */
+.card .simulator-conditional-hint {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: #64748b;
+  line-height: 1.45;
+  margin: 0 0 12px;
+  grid-column: 1 / -1;
+}
+
+.simulator-conditional-grid {
+  grid-column: 1 / -1;
+}
+
+.simulator-conditional-row {
+  grid-column: 1 / -1;
+}
+
 .checkbox-field {
   align-self: center;
 }
