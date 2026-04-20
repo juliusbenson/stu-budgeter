@@ -1,0 +1,36 @@
+Date	Expenses ($)	Recurring cost (description)	Recurring cost ($)		Income ($)
+09/01		Semester Fees	=523/5	(amortized over 5 months)	
+09/02					
+09/03					
+09/04					
+09/05					
+09/06					
+09/07					
+09/08					
+09/09					
+09/10					
+09/11					
+09/12					
+09/13					
+09/14		Water			
+09/15		Internet			2610.74
+09/16		Trash+Sewage			
+09/17		Gas+electric			
+09/18					
+09/19					
+09/20					
+09/21					
+09/22					
+09/23					
+09/24					
+09/25					
+09/26					
+09/27					
+09/28		Rent	800		
+09/29					
+09/30					
+Total daily	=SUM(B2:B31)	Total recurring	=SUM(D2:D31)	Monthly income	=SUM(F2:F31)
+Amortized monthly income	=F32*11/12				
+Minus recurring	=B33-D32				
+Minus daily	=B34-B32				
+Net leftover	=B35				
