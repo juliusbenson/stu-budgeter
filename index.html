@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Budget calendar</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="toolbar">
+        <div class="menu-wrap toolbar-menu">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            id="btn-menu"
+            aria-expanded="false"
+            aria-controls="app-menu"
+            aria-haspopup="true"
+          >
+            Menu
+          </button>
+          <div id="app-menu" class="app-menu" role="menu" hidden>
+            <button type="button" class="app-menu-item" role="menuitem" id="btn-export-csv">
+              Export CSV
+            </button>
+            <button type="button" class="app-menu-item" role="menuitem" id="btn-import-csv">
+              Import CSV
+            </button>
+          </div>
+        </div>
+        <div class="toolbar-month">
+          <button type="button" class="btn" id="btn-prev" aria-label="Previous month">
+            &larr;
+          </button>
+          <h1 class="month-title" id="month-title"></h1>
+          <button type="button" class="btn" id="btn-next" aria-label="Next month">
+            &rarr;
+          </button>
+        </div>
+        <div class="toolbar-actions">
+          <button type="button" class="btn btn-secondary" id="btn-today">Today</button>
+          <input type="file" id="file-import-csv" accept=".csv,text/csv" hidden />
+        </div>
+      </header>
+
+      <main class="main">
+        <section class="calendar-section" aria-labelledby="month-title">
+          <div class="weekday-row" role="row">
+            <span class="weekday">Sun</span>
+            <span class="weekday">Mon</span>
+            <span class="weekday">Tue</span>
+            <span class="weekday">Wed</span>
+            <span class="weekday">Thu</span>
+            <span class="weekday">Fri</span>
+            <span class="weekday">Sat</span>
+          </div>
+          <div class="grid" id="calendar-grid" role="grid" aria-label="Month view"></div>
+        </section>
+
+        <aside class="side-panel">
+          <div class="panel-header">
+            <h2 class="panel-heading" id="selected-day-label"></h2>
+            <button type="button" class="btn btn-secondary" id="btn-month-summary" hidden>
+              Month summary
+            </button>
+          </div>
+          <div id="month-summary-block" class="month-summary-block" hidden>
+            <p class="month-summary-hint">
+              Net of all items scheduled in this month.
+            </p>
+            <p id="month-summary-net" class="month-summary-net month-summary-net-zero">
+              $0.00
+            </p>
+            <label class="field month-summary-field">
+              <span>Target savings (by end of month)</span>
+              <input
+                type="number"
+                id="month-target-savings"
+                min="0"
+                step="0.01"
+                inputmode="decimal"
+              />
+            </label>
+            <p id="month-daily-target" class="month-summary-daily">Daily target: $0.00</p>
+          </div>
+          <ul class="item-list" id="item-list" aria-live="polite"></ul>
+          <div class="panel-actions">
+            <button type="button" class="btn btn-primary" id="btn-add">Add budget item</button>
+          </div>
+
+          <form class="item-form" id="item-form" hidden>
+            <fieldset>
+              <legend id="form-legend">Budget item</legend>
+              <label class="field">
+                <span>When</span>
+                <input type="datetime-local" id="field-when" required />
+              </label>
+              <label class="field">
+                <span>Description</span>
+                <textarea id="field-description" rows="4" required></textarea>
+              </label>
+              <div class="field">
+                <span class="field-label-text">Amount (USD)</span>
+                <div class="money-row">
+                  <div class="direction-radios" role="radiogroup" aria-label="Income or expenditure">
+                    <label class="radio-label">
+                      <input
+                        type="radio"
+                        name="amount-direction"
+                        value="expenditure"
+                        id="dir-expenditure"
+                        checked
+                      />
+                      Expenditure
+                    </label>
+                    <label class="radio-label">
+                      <input type="radio" name="amount-direction" value="income" id="dir-income" />
+                      Income
+                    </label>
+                  </div>
+                  <input
+                    type="number"
+                    id="field-amount-magnitude"
+                    min="0"
+                    step="0.01"
+                    inputmode="decimal"
+                    value="0"
+                    aria-describedby="amount-hint"
+                  />
+                </div>
+                <span id="amount-hint" class="field-hint">Stored as a signed value: income positive, expenditure negative.</span>
+              </div>
+              <p class="form-error" id="form-error" hidden></p>
+            </fieldset>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" id="btn-save">Save</button>
+              <button type="button" class="btn btn-secondary" id="btn-cancel">Cancel</button>
+              <button type="button" class="btn btn-danger" id="btn-delete" hidden>
+                Delete
+              </button>
+            </div>
+          </form>
+        </aside>
+      </main>
+    </div>
+    <script src="app.js" defer></script>
+  </body>
+</html>
