@@ -386,6 +386,16 @@ function stripTime(d) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
+/** Next calendar month, same day number, clamped to last day of target month. */
+function sameDayInNextCalendarMonth(d) {
+  const y = d.getFullYear();
+  const m = d.getMonth();
+  const day = d.getDate();
+  const dim = daysInMonth(y, m + 1);
+  const targetDay = Math.min(day, dim);
+  return stripTime(new Date(y, m + 1, targetDay));
+}
+
 /**
  * @param {Date} d
  * @param {{ clearSelection?: boolean }} [options]
@@ -640,6 +650,8 @@ function renderSidePanel() {
       for (const ev of dayItems) {
         const start = itemStartDate(ev);
         const li = document.createElement("li");
+        li.className = "item-li";
+
         const b = document.createElement("button");
         b.type = "button";
         b.className = "item-row";
@@ -661,7 +673,25 @@ function renderSidePanel() {
         b.appendChild(money);
         b.appendChild(desc);
         b.addEventListener("click", () => openFormForEdit(ev.id));
+
+        const copyBtn = document.createElement("button");
+        copyBtn.type = "button";
+        copyBtn.className = "btn btn-secondary item-copy-next";
+        copyBtn.textContent = "Copy to next month…";
+        const descSnippet = ev.description.trim().slice(0, 48);
+        copyBtn.setAttribute(
+          "aria-label",
+          descSnippet
+            ? `Copy to next month, prefilled from: ${descSnippet}`
+            : "Copy to next month with same amount and description"
+        );
+        copyBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          beginCopyItemToNextMonth(ev);
+        });
+
         li.appendChild(b);
+        li.appendChild(copyBtn);
         itemListEl.appendChild(li);
       }
     }
@@ -719,18 +749,50 @@ function setAmountFieldsFromSigned(amount) {
   fieldAmountMagnitude.value = String(Math.abs(a));
 }
 
-function openFormNew() {
+/**
+ * @param {{ when?: Date, description?: string, amount?: number }} [preset]
+ */
+function openFormNew(preset) {
   editingId = null;
   formLegend.textContent = "New budget item";
-  fieldWhen.value = formatDatetimeLocal(defaultDatetimeForNewItem());
-  fieldDescription.value = "";
-  setAmountFieldsFromSigned(0);
+  const when = preset?.when ?? defaultDatetimeForNewItem();
+  fieldWhen.value = formatDatetimeLocal(when);
+  fieldDescription.value =
+    preset && "description" in preset ? preset.description : "";
+  if (preset && "amount" in preset) {
+    setAmountFieldsFromSigned(preset.amount);
+  } else {
+    setAmountFieldsFromSigned(0);
+  }
   formErrorEl.hidden = true;
   formErrorEl.textContent = "";
   btnDelete.hidden = true;
   formEl.hidden = false;
   btnAdd.disabled = true;
   fieldWhen.focus();
+}
+
+/** @param {BudgetItem} ev */
+function beginCopyItemToNextMonth(ev) {
+  closeForm();
+  const start = itemStartDate(ev);
+  const calendarDay = stripTime(start);
+  const targetDay = sameDayInNextCalendarMonth(calendarDay);
+  const when = new Date(
+    targetDay.getFullYear(),
+    targetDay.getMonth(),
+    targetDay.getDate(),
+    start.getHours(),
+    start.getMinutes(),
+    0,
+    0
+  );
+  setSelectedDay(targetDay);
+  openFormNew({
+    when,
+    description: ev.description,
+    amount: ev.amount,
+  });
 }
 
 /** @param {string} id */
@@ -763,7 +825,18 @@ formEl.addEventListener("submit", (e) => {
   const whenVal = fieldWhen.value;
   const desc = fieldDescription.value.trim();
   const when = parseDatetimeLocal(whenVal);
-  if (!when || !desc) return;
+  if (!when) {
+    formErrorEl.textContent = "Enter a valid date and time.";
+    formErrorEl.hidden = false;
+    fieldWhen.focus();
+    return;
+  }
+  if (!desc) {
+    formErrorEl.textContent = "Add a description before saving.";
+    formErrorEl.hidden = false;
+    fieldDescription.focus();
+    return;
+  }
 
   const rawMag = fieldAmountMagnitude.value.trim();
   let magnitude = 0;
