@@ -543,13 +543,6 @@ body {
   font-size: 0.9rem;
 }
 
-.field-hint {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--muted);
-  margin-top: 0.2rem;
-}
-
 .visually-hidden {
   position: absolute;
   width: 1px;
