@@ -405,6 +405,7 @@ const monthSummaryBlock = document.getElementById("month-summary-block");
 const monthSummaryNetEl = document.getElementById("month-summary-net");
 const monthTargetInput = document.getElementById("month-target-savings");
 const monthDailyTargetEl = document.getElementById("month-daily-target");
+const monthWeeklyTargetEl = document.getElementById("month-weekly-target");
 const itemListEl = document.getElementById("item-list");
 const btnAdd = document.getElementById("btn-add");
 const formEl = document.getElementById("item-form");
@@ -598,6 +599,8 @@ function updateMonthDailyTarget() {
   const divisor = daysForDailyTargetDivisor();
   const daily = normalizeAmount((net - target) / divisor);
   monthDailyTargetEl.textContent = `Daily target: ${formatSignedUsd(daily)}`;
+  const weekly = normalizeAmount(daily * 7);
+  monthWeeklyTargetEl.textContent = `Weekly target: ${formatSignedUsd(weekly)}`;
 }
 
 function refreshMonthLabelsFromTier() {
