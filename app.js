@@ -353,6 +353,7 @@ const appMenu = document.getElementById("app-menu");
 const menuWrap = document.querySelector(".menu-wrap");
 const btnExportCsv = document.getElementById("btn-export-csv");
 const btnImportCsv = document.getElementById("btn-import-csv");
+const appMenuLinks = document.querySelectorAll(".app-menu-link");
 const fileImportCsv = document.getElementById("file-import-csv");
 const selectedDayLabel = document.getElementById("selected-day-label");
 const btnMonthSummary = document.getElementById("btn-month-summary");
@@ -965,6 +966,12 @@ btnExportCsv.addEventListener("click", () => {
 btnImportCsv.addEventListener("click", () => {
   closeAppMenu();
   fileImportCsv.click();
+});
+
+appMenuLinks.forEach((link) => {
+  link.addEventListener("click", () => {
+    closeAppMenu();
+  });
 });
 
 fileImportCsv.addEventListener("change", () => {
