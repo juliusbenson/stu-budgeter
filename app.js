@@ -3,7 +3,7 @@ const STORAGE_KEY = "stu-calendar-events-v1";
 
 const MONTH_TARGETS_KEY = "stu-budget-month-targets-v1";
 
-/** @typedef {{ id: string, startIso: string, description: string, amount: number }} BudgetItem */
+/** @typedef {{ id: string, startIso: string, description: string, amount: number, seriesId?: string }} BudgetItem */
 
 const usdFormatter = new Intl.NumberFormat(undefined, {
   style: "currency",
@@ -233,11 +233,11 @@ function escapeCsvField(s) {
 
 /** @param {BudgetItem[]} list */
 function itemsToCsv(list) {
-  const lines = ["id,start_iso,description,amount"];
+  const lines = ["id,start_iso,description,amount,series_id"];
   for (const row of list) {
     const a = normalizeAmount(row.amount);
     lines.push(
-      `${escapeCsvField(row.id)},${escapeCsvField(row.startIso)},${escapeCsvField(row.description)},${escapeCsvField(String(a))}`
+      `${escapeCsvField(row.id)},${escapeCsvField(row.startIso)},${escapeCsvField(row.description)},${escapeCsvField(String(a))},${escapeCsvField(row.seriesId ?? "")}`
     );
   }
   return lines.join("\r\n") + "\r\n";
@@ -260,6 +260,7 @@ function parseBudgetItemsFromCsv(text) {
   const iIso = col("start_iso");
   const iDesc = col("description");
   const iAmt = col("amount");
+  const iSeries = rawHeaders.indexOf("series_id");
   const nCols = rawHeaders.length;
   /** @type {BudgetItem[]} */
   const out = [];
@@ -282,12 +283,17 @@ function parseBudgetItemsFromCsv(text) {
     if (!Number.isFinite(amt)) {
       throw new Error(`Invalid amount on row ${r + 1}.`);
     }
-    out.push({
+    const seriesCell =
+      iSeries >= 0 ? (cells[iSeries] ?? "").trim() : "";
+    /** @type {BudgetItem} */
+    const item = {
       id: idCell || newId(),
       startIso: iso,
       description: desc,
       amount: normalizeAmount(amt),
-    });
+    };
+    if (seriesCell) item.seriesId = seriesCell;
+    out.push(item);
   }
   return out;
 }
@@ -331,6 +337,9 @@ function loadItems() {
         startIso: e.startIso,
         description: e.description,
         amount: normalizeAmount(e.amount),
+        ...(typeof e.seriesId === "string" && e.seriesId
+          ? { seriesId: e.seriesId }
+          : {}),
       }));
   } catch {
     return [];
@@ -373,6 +382,13 @@ const dirExpenditure = document.getElementById("dir-expenditure");
 const formErrorEl = document.getElementById("form-error");
 const btnCancel = document.getElementById("btn-cancel");
 const btnDelete = document.getElementById("btn-delete");
+const btnDeleteSeries = document.getElementById("btn-delete-series");
+const fieldRecurring = document.getElementById("field-recurring");
+const fieldRecurringMonths = document.getElementById("field-recurring-months");
+const fieldRecurringCountWrap = document.getElementById(
+  "field-recurring-count-wrap"
+);
+const fieldRecurringWrap = document.getElementById("field-recurring-wrap");
 
 /** @type {Date} */
 let viewMonth = startOfMonth(new Date());
@@ -651,7 +667,6 @@ function renderSidePanel() {
       for (const ev of dayItems) {
         const start = itemStartDate(ev);
         const li = document.createElement("li");
-        li.className = "item-li";
 
         const b = document.createElement("button");
         b.type = "button";
@@ -673,26 +688,17 @@ function renderSidePanel() {
         b.appendChild(t);
         b.appendChild(money);
         b.appendChild(desc);
+        if (ev.seriesId) {
+          const badge = document.createElement("span");
+          badge.className = "item-recurring-badge";
+          badge.textContent = "↻";
+          badge.title = "Part of a monthly recurring series";
+          b.appendChild(badge);
+        }
+
         b.addEventListener("click", () => openFormForEdit(ev.id));
 
-        const copyBtn = document.createElement("button");
-        copyBtn.type = "button";
-        copyBtn.className = "btn btn-secondary item-copy-next";
-        copyBtn.textContent = "Copy to next month…";
-        const descSnippet = ev.description.trim().slice(0, 48);
-        copyBtn.setAttribute(
-          "aria-label",
-          descSnippet
-            ? `Copy to next month, prefilled from: ${descSnippet}`
-            : "Copy to next month with same amount and description"
-        );
-        copyBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          beginCopyItemToNextMonth(ev);
-        });
-
         li.appendChild(b);
-        li.appendChild(copyBtn);
         itemListEl.appendChild(li);
       }
     }
@@ -711,6 +717,7 @@ function closeForm() {
   formErrorEl.hidden = true;
   formErrorEl.textContent = "";
   btnDelete.hidden = true;
+  btnDeleteSeries.hidden = true;
   btnAdd.disabled = false;
 }
 
@@ -768,32 +775,14 @@ function openFormNew(preset) {
   formErrorEl.hidden = true;
   formErrorEl.textContent = "";
   btnDelete.hidden = true;
+  btnDeleteSeries.hidden = true;
   formEl.hidden = false;
   btnAdd.disabled = true;
+  fieldRecurringWrap.hidden = false;
+  fieldRecurring.checked = false;
+  fieldRecurringCountWrap.hidden = true;
+  fieldRecurringMonths.value = "12";
   fieldWhen.focus();
-}
-
-/** @param {BudgetItem} ev */
-function beginCopyItemToNextMonth(ev) {
-  closeForm();
-  const start = itemStartDate(ev);
-  const calendarDay = stripTime(start);
-  const targetDay = sameDayInNextCalendarMonth(calendarDay);
-  const when = new Date(
-    targetDay.getFullYear(),
-    targetDay.getMonth(),
-    targetDay.getDate(),
-    start.getHours(),
-    start.getMinutes(),
-    0,
-    0
-  );
-  setSelectedDay(targetDay);
-  openFormNew({
-    when,
-    description: ev.description,
-    amount: ev.amount,
-  });
 }
 
 /** @param {string} id */
@@ -809,6 +798,8 @@ function openFormForEdit(id) {
   formErrorEl.hidden = true;
   formErrorEl.textContent = "";
   btnDelete.hidden = false;
+  fieldRecurringWrap.hidden = true;
+  btnDeleteSeries.hidden = !ev.seriesId;
   formEl.hidden = false;
   btnAdd.disabled = true;
   fieldDescription.focus();
@@ -864,6 +855,41 @@ formEl.addEventListener("submit", (e) => {
           }
         : ev
     );
+  } else if (fieldRecurring.checked) {
+    const totalMonths = Math.max(
+      2,
+      Math.min(120, Number(fieldRecurringMonths.value) || 12)
+    );
+    const sid = newId();
+    /** @type {BudgetItem[]} */
+    const newItems = [];
+    let day = stripTime(when);
+    for (let i = 0; i < totalMonths; i++) {
+      const d =
+        i === 0
+          ? when
+          : new Date(
+              day.getFullYear(),
+              day.getMonth(),
+              day.getDate(),
+              when.getHours(),
+              when.getMinutes(),
+              0,
+              0
+            );
+      newItems.push({
+        id: newId(),
+        startIso: d.toISOString(),
+        description: desc,
+        amount,
+        seriesId: sid,
+      });
+      day = sameDayInNextCalendarMonth(day);
+    }
+    commitItems([...items, ...newItems]);
+    setSelectedDay(stripTime(when));
+    closeForm();
+    return;
   } else {
     items = [
       ...items,
@@ -890,8 +916,22 @@ btnDelete.addEventListener("click", () => {
   closeForm();
 });
 
+btnDeleteSeries.addEventListener("click", () => {
+  if (!editingId) return;
+  const ev = items.find((e) => e.id === editingId);
+  if (!ev?.seriesId) return;
+  const sid = ev.seriesId;
+  if (!confirm("Delete all occurrences in this recurring series?")) return;
+  commitItems(items.filter((e) => e.seriesId !== sid));
+  closeForm();
+});
+
 btnAdd.addEventListener("click", () => {
   openFormNew();
+});
+
+fieldRecurring.addEventListener("change", () => {
+  fieldRecurringCountWrap.hidden = !fieldRecurring.checked;
 });
 
 btnPrev.addEventListener("click", () => {

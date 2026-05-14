@@ -185,6 +185,23 @@
                 </div>
                 <span id="amount-hint" class="field-hint">Stored as a signed value: income positive, expenditure negative.</span>
               </div>
+              <div class="field field-recurring" id="field-recurring-wrap">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="field-recurring" />
+                  Repeat monthly
+                </label>
+                <label class="field field-recurring-count" id="field-recurring-count-wrap" hidden>
+                  <span>For how many months total</span>
+                  <input
+                    type="number"
+                    id="field-recurring-months"
+                    min="2"
+                    max="120"
+                    step="1"
+                    value="12"
+                  />
+                </label>
+              </div>
               <p class="form-error" id="form-error" hidden></p>
             </fieldset>
             <div class="form-actions">
@@ -192,6 +209,9 @@
               <button type="button" class="btn btn-secondary" id="btn-cancel">Cancel</button>
               <button type="button" class="btn btn-danger" id="btn-delete" hidden>
                 Delete
+              </button>
+              <button type="button" class="btn btn-danger" id="btn-delete-series" hidden>
+                Delete series
               </button>
             </div>
           </form>

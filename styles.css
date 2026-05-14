@@ -419,18 +419,8 @@ body {
   gap: 0.5rem;
 }
 
-.item-li {
-  display: flex;
-  align-items: stretch;
-  gap: 0.35rem;
-  width: 100%;
-  min-width: 0;
-}
-
 .item-row {
-  flex: 1 1 auto;
-  min-width: 0;
-  width: auto;
+  width: 100%;
   text-align: left;
   padding: 0.5rem 0.65rem;
   border-radius: 8px;
@@ -439,17 +429,6 @@ body {
   font: inherit;
   color: inherit;
   cursor: pointer;
-}
-
-.item-copy-next {
-  flex-shrink: 0;
-  align-self: center;
-  max-width: 7.5rem;
-  padding: 0.35rem 0.45rem;
-  font-size: 0.72rem;
-  line-height: 1.25;
-  text-align: center;
-  white-space: normal;
 }
 
 .item-row:hover {
@@ -485,6 +464,14 @@ body {
 .item-desc {
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.item-recurring-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-left: 0.25rem;
+  vertical-align: middle;
 }
 
 .empty-hint {
@@ -529,6 +516,23 @@ body {
 .field textarea {
   resize: vertical;
   min-height: 5rem;
+}
+
+.field-recurring {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.field-recurring-count input {
+  max-width: 6rem;
 }
 
 .field-label-text {
