@@ -68,7 +68,8 @@ body {
 }
 
 .toolbar-month {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 0.35rem;
   flex: 1 1 auto;
@@ -81,11 +82,15 @@ body {
   font-size: clamp(0.88rem, 3.2vw, 1.25rem);
   font-weight: 600;
   min-width: 0;
-  flex: 1 1 auto;
+  width: 100%;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+#btn-next {
+  justify-self: end;
 }
 
 .btn {
@@ -227,20 +232,12 @@ body {
   .month-title {
     min-width: 8rem;
     font-size: 1.25rem;
-    flex: 0 1 auto;
   }
 }
 
 .main {
   display: grid;
   gap: 1.25rem;
-}
-
-@media (min-width: 720px) {
-  .main {
-    grid-template-columns: 1fr minmax(240px, 320px);
-    align-items: start;
-  }
 }
 
 .calendar-section {
