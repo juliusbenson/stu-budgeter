@@ -3,7 +3,30 @@ const STORAGE_KEY = "stu-calendar-events-v1";
 
 const MONTH_TARGETS_KEY = "stu-budget-month-targets-v1";
 
-/** @typedef {{ id: string, startIso: string, description: string, amount: number, seriesId?: string }} BudgetItem */
+/** @typedef {{ id: string, startIso: string, description: string, amount: number, category: string, seriesId?: string }} BudgetItem */
+
+const CATEGORY_UNCATEGORIZED = "Uncategorized";
+
+/** @type {readonly string[]} */
+const BUDGET_CATEGORIES = [
+  CATEGORY_UNCATEGORIZED,
+  "Salary",
+  "Supplemental Income",
+  "Rent",
+  "Food",
+  "Household",
+  "Fees",
+  "Transit",
+  "Medical",
+  "Insurance",
+  "Utilities",
+  "Subscriptions",
+  "Travel",
+  "Entertainment",
+  "Other",
+];
+
+const BUDGET_CATEGORY_SET = new Set(BUDGET_CATEGORIES);
 
 const usdFormatter = new Intl.NumberFormat(undefined, {
   style: "currency",
@@ -21,6 +44,13 @@ const usdCompactFormatter = new Intl.NumberFormat(undefined, {
 function normalizeAmount(n) {
   if (typeof n !== "number" || !Number.isFinite(n)) return 0;
   return Math.round(n * 100) / 100;
+}
+
+/** @param {unknown} raw */
+function normalizeCategory(raw) {
+  const s = typeof raw === "string" ? raw.trim() : "";
+  if (BUDGET_CATEGORY_SET.has(s)) return s;
+  return CATEGORY_UNCATEGORIZED;
 }
 
 /** @param {number} amount signed dollars */
@@ -233,11 +263,12 @@ function escapeCsvField(s) {
 
 /** @param {BudgetItem[]} list */
 function itemsToCsv(list) {
-  const lines = ["id,start_iso,description,amount,series_id"];
+  const lines = ["id,start_iso,description,category,amount,series_id"];
   for (const row of list) {
     const a = normalizeAmount(row.amount);
+    const cat = row.category ?? CATEGORY_UNCATEGORIZED;
     lines.push(
-      `${escapeCsvField(row.id)},${escapeCsvField(row.startIso)},${escapeCsvField(row.description)},${escapeCsvField(String(a))},${escapeCsvField(row.seriesId ?? "")}`
+      `${escapeCsvField(row.id)},${escapeCsvField(row.startIso)},${escapeCsvField(row.description)},${escapeCsvField(cat)},${escapeCsvField(String(a))},${escapeCsvField(row.seriesId ?? "")}`
     );
   }
   return lines.join("\r\n") + "\r\n";
@@ -261,6 +292,7 @@ function parseBudgetItemsFromCsv(text) {
   const iDesc = col("description");
   const iAmt = col("amount");
   const iSeries = rawHeaders.indexOf("series_id");
+  const iCat = rawHeaders.indexOf("category");
   const nCols = rawHeaders.length;
   /** @type {BudgetItem[]} */
   const out = [];
@@ -285,11 +317,13 @@ function parseBudgetItemsFromCsv(text) {
     }
     const seriesCell =
       iSeries >= 0 ? (cells[iSeries] ?? "").trim() : "";
+    const catCell = iCat >= 0 ? (cells[iCat] ?? "").trim() : "";
     /** @type {BudgetItem} */
     const item = {
       id: idCell || newId(),
       startIso: iso,
       description: desc,
+      category: normalizeCategory(catCell),
       amount: normalizeAmount(amt),
     };
     if (seriesCell) item.seriesId = seriesCell;
@@ -336,6 +370,7 @@ function loadItems() {
         id: e.id,
         startIso: e.startIso,
         description: e.description,
+        category: normalizeCategory(e.category),
         amount: normalizeAmount(e.amount),
         ...(typeof e.seriesId === "string" && e.seriesId
           ? { seriesId: e.seriesId }
@@ -375,6 +410,7 @@ const btnAdd = document.getElementById("btn-add");
 const formEl = document.getElementById("item-form");
 const formLegend = document.getElementById("form-legend");
 const fieldWhen = document.getElementById("field-when");
+const fieldCategory = document.getElementById("field-category");
 const fieldDescription = document.getElementById("field-description");
 const fieldAmountMagnitude = document.getElementById("field-amount-magnitude");
 const dirIncome = document.getElementById("dir-income");
@@ -389,6 +425,18 @@ const fieldRecurringCountWrap = document.getElementById(
   "field-recurring-count-wrap"
 );
 const fieldRecurringWrap = document.getElementById("field-recurring-wrap");
+
+function initCategorySelect() {
+  fieldCategory.replaceChildren();
+  for (const c of BUDGET_CATEGORIES) {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    fieldCategory.appendChild(opt);
+  }
+}
+
+initCategorySelect();
 
 /** @type {Date} */
 let viewMonth = startOfMonth(new Date());
@@ -782,6 +830,7 @@ function openFormNew(preset) {
   fieldRecurring.checked = false;
   fieldRecurringCountWrap.hidden = true;
   fieldRecurringMonths.value = "12";
+  fieldCategory.value = CATEGORY_UNCATEGORIZED;
   fieldWhen.focus();
 }
 
@@ -793,6 +842,7 @@ function openFormForEdit(id) {
   formLegend.textContent = "Edit budget item";
   const start = itemStartDate(ev);
   fieldWhen.value = formatDatetimeLocal(start);
+  fieldCategory.value = ev.category ?? CATEGORY_UNCATEGORIZED;
   fieldDescription.value = ev.description;
   setAmountFieldsFromSigned(ev.amount);
   formErrorEl.hidden = true;
@@ -843,6 +893,7 @@ formEl.addEventListener("submit", (e) => {
   formErrorEl.hidden = true;
   formErrorEl.textContent = "";
   const amount = normalizeAmount(directionSignFromUi() * magnitude);
+  const category = normalizeCategory(fieldCategory.value);
 
   if (editingId) {
     items = items.map((ev) =>
@@ -851,6 +902,7 @@ formEl.addEventListener("submit", (e) => {
             ...ev,
             startIso: when.toISOString(),
             description: desc,
+            category,
             amount,
           }
         : ev
@@ -881,6 +933,7 @@ formEl.addEventListener("submit", (e) => {
         id: newId(),
         startIso: d.toISOString(),
         description: desc,
+        category,
         amount,
         seriesId: sid,
       });
@@ -897,6 +950,7 @@ formEl.addEventListener("submit", (e) => {
         id: newId(),
         startIso: when.toISOString(),
         description: desc,
+        category,
         amount,
       },
     ];

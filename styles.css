@@ -501,7 +501,8 @@ body {
 }
 
 .field input,
-.field textarea {
+.field textarea,
+.field select {
   font: inherit;
   padding: 0.45rem 0.5rem;
   border-radius: 6px;
